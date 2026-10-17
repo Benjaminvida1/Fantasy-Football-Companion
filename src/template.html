@@ -1,0 +1,445 @@
+<title>PPR Trade Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: scoreboard header, three tabs (Over/Under table + scatter, Trade evaluator, Method). Warm = sell high, cool = buy low. */
+:root{
+  --bg:#EDF0EE; --panel:#F8FAF9; --ink:#14201B; --ink2:#46544D; --muted:#6F7C75; --line:#D3DAD6; --line2:#E3E8E5;
+  --sell:#B4410B; --sell-bg:#F6E3D8; --buy:#1C5EA6; --buy-bg:#DCE9F6; --accent:#1B6B4A; --accent-bg:#D8EBE1;
+  --warn:#8A6100; --warn-bg:#F4E8C6; --good:#1B6B4A; --bad:#A12D2D;
+  --display:'Barlow Condensed','Arial Narrow',sans-serif; --body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1512; --panel:#161F1B; --ink:#E5ECE8; --ink2:#B4C0BA; --muted:#85938C; --line:#2A3631; --line2:#212C27;
+  --sell:#F28F5B; --sell-bg:#3A2418; --buy:#78B0EE; --buy-bg:#17293C; --accent:#5CC595; --accent-bg:#17302A;
+  --warn:#E6BE55; --warn-bg:#33290F; --good:#5CC595; --bad:#F08080; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1512; --panel:#161F1B; --ink:#E5ECE8; --ink2:#B4C0BA; --muted:#85938C; --line:#2A3631; --line2:#212C27;
+  --sell:#F28F5B; --sell-bg:#3A2418; --buy:#78B0EE; --buy-bg:#17293C; --accent:#5CC595; --accent-bg:#17302A;
+  --warn:#E6BE55; --warn-bg:#33290F; --good:#5CC595; --bad:#F08080; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--body);padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance}
+h1{font-size:clamp(30px,5vw,44px);line-height:1;text-transform:uppercase}
+h2{font-size:22px;text-transform:uppercase}
+h3{font-size:17px;text-transform:uppercase;color:var(--ink2)}
+p{margin:0}
+.mono,td.num,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:12px}
+.sub{color:var(--ink2);font-size:13px;max-width:62ch}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{font:600 15px var(--display);letter-spacing:.06em;text-transform:uppercase;padding:8px 16px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);cursor:pointer;border-radius:3px}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,th[data-k]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px;min-width:0}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:end}
+.ctl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ctl label,.lbl{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+select,input[type=text],input[type=search]{font:14px var(--body);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:7px 9px;min-width:0}
+input[type=range]{accent-color:var(--accent);width:150px}
+.seg{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{font:500 13px var(--body);background:var(--bg);color:var(--ink2);border:0;border-right:1px solid var(--line);padding:7px 11px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px}
+@media(max-width:900px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;max-height:640px;overflow-y:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{position:sticky;top:0;background:var(--panel);text-align:right;font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 9px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none;z-index:1}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--panel);z-index:2}
+th:first-child{z-index:3}
+th[aria-sort="ascending"]::after{content:" ▲";font-size:9px}th[aria-sort="descending"]::after{content:" ▼";font-size:9px}
+td{padding:7px 9px;border-bottom:1px solid var(--line2);text-align:right;white-space:nowrap}
+tr:hover td{background:var(--bg)}
+.pname{font-weight:600}.pmeta{color:var(--muted);font-size:12px}
+.chip{display:inline-block;font:600 10px var(--mono);padding:1px 5px;border-radius:2px;background:var(--line2);color:var(--ink2);margin-right:5px;letter-spacing:.04em}
+.pill{display:inline-block;font:600 11px var(--body);padding:2px 8px;border-radius:10px;letter-spacing:.03em}
+.pill.sell{background:var(--sell-bg);color:var(--sell)}.pill.buy{background:var(--buy-bg);color:var(--buy)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}.pill.none{color:var(--muted)}
+.pos{color:var(--sell)}.neg{color:var(--buy)}
+.zbar{display:inline-block;width:56px;height:8px;position:relative;vertical-align:middle;margin-left:6px;background:var(--line2);border-radius:1px}
+.zbar i{position:absolute;top:0;bottom:0}
+.note{color:var(--muted);font-size:12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink2)}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.legend .l-sell::before{background:var(--sell)}.legend .l-buy::before{background:var(--buy)}.legend .l-mid::before{background:var(--muted);opacity:.55}
+#scatter{width:100%;height:auto;display:block;touch-action:none}
+#scatter text{font:11px var(--mono);fill:var(--muted)}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);padding:8px 10px;border-radius:3px;font-size:12px;line-height:1.4;z-index:20;max-width:230px;display:none}
+#tip b{font-weight:600}
+.trade{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media(max-width:900px){.trade{grid-template-columns:minmax(0,1fr)}}
+.pick{position:relative}
+.pick input{width:100%}
+.dd{position:absolute;left:0;right:0;top:100%;background:var(--panel);border:1px solid var(--line);border-radius:3px;z-index:5;max-height:260px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.dd button{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line2);padding:7px 9px;color:var(--ink);font:13px var(--body);cursor:pointer}
+.dd button:hover,.dd button:focus-visible{background:var(--bg)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-height:30px}
+.tag{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg);border-radius:3px;padding:3px 4px 3px 8px;font-size:13px}
+.tag button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:2px 5px}
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.stat{border-left:3px solid var(--line);padding:2px 0 2px 12px}
+.stat .v{font:700 34px/1.05 var(--display)}
+.stat .k{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.big-good{color:var(--good)}.big-bad{color:var(--bad)}
+.example{background:var(--warn-bg);color:var(--warn);font-size:12px;padding:6px 10px;border-radius:3px}
+.math{display:flex;flex-direction:column;gap:18px}
+.math section{display:flex;flex-direction:column;gap:6px;max-width:80ch}
+.eq{font:13px/1.6 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:8px 12px;overflow-x:auto;white-space:pre}
+.btn{font:600 13px var(--body);background:var(--ink);color:var(--bg);border:0;border-radius:3px;padding:7px 12px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink2);border:1px solid var(--line)}
+[hidden]{display:none!important}
+@media(prefers-reduced-motion:no-preference){.tab,.btn{transition:background .12s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>PPR Trade Desk</h1>
+      <p class="sub" id="hdrsub"></p>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="t-ou" aria-selected="true" data-tab="ou">Over / Under</button>
+      <button class="tab" role="tab" id="t-tr" aria-selected="false" data-tab="tr">Trade evaluator</button>
+      <button class="tab" role="tab" id="t-me" aria-selected="false" data-tab="me">Method</button>
+    </div>
+  </header>
+
+  <section class="panel controls" aria-label="Projection window">
+    <div class="ctl"><label for="wStart">From week</label><select id="wStart"></select></div>
+    <div class="ctl"><label for="wEnd">Through week</label><select id="wEnd"></select></div>
+    <div class="ctl"><label for="sosW">Schedule weight <span class="mono" id="sosVal">0.0</span></label><input type="range" id="sosW" min="0" max="1.5" step="0.25" value="0"></div>
+    <p class="note" id="sosNote" style="max-width:48ch"></p>
+  </section>
+
+  <!-- TAB 1 -->
+  <div id="tab-ou" class="grid2">
+    <section class="panel" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <h2>Production vs. opportunity</h2>
+        <div class="legend"><span class="l-sell">Above expected (sell-high)</span><span class="l-buy">Below expected (buy-low)</span><span class="l-mid">Within noise</span></div>
+      </div>
+      <svg id="scatter" viewBox="0 0 520 460" role="img" aria-label="Scatter of expected PPR points per game versus actual PPR points per game"></svg>
+      <p class="note">Each dot is one player. Dots above the diagonal scored more than their usage predicts. Filled dots have |z| ≥ 1.25 on at least 3 games.</p>
+    </section>
+    <section class="panel" style="display:flex;flex-direction:column;gap:12px">
+      <h2>Players</h2>
+      <div class="controls">
+        <div class="ctl"><span class="lbl">Position</span><div class="seg" id="posSeg"></div></div>
+        <div class="ctl"><span class="lbl">Signal</span><div class="seg" id="sigSeg"></div></div>
+        <div class="ctl" style="flex:1;min-width:140px"><label for="q">Search</label><input type="search" id="q" placeholder="Player or team"></div>
+      </div>
+      <div class="tablewrap" id="tw"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+      <p class="note" id="tnote"></p>
+    </section>
+  </div>
+
+  <!-- TAB 2 -->
+  <div id="tab-tr" hidden style="display:flex;flex-direction:column;gap:16px">
+    <div class="example" id="exNote" hidden>Example roster and trade shown so you can see how it works. Replace the roster with yours; it is saved in this browser.</div>
+    <div class="trade">
+      <section class="panel"><h3>My roster</h3>
+        <div class="pick" id="pk-roster" style="margin-top:8px"></div><div class="tags" id="tg-roster"></div>
+        <div style="margin-top:10px;display:flex;gap:8px"><button class="btn ghost" id="clearRoster">Clear roster</button></div></section>
+      <section class="panel"><h3>I give</h3>
+        <div class="pick" id="pk-give" style="margin-top:8px"></div><div class="tags" id="tg-give"></div></section>
+      <section class="panel"><h3>I get</h3>
+        <div class="pick" id="pk-get" style="margin-top:8px"></div><div class="tags" id="tg-get"></div></section>
+    </div>
+    <section class="panel" id="result" style="display:flex;flex-direction:column;gap:14px"></section>
+  </div>
+
+  <!-- TAB 3 -->
+  <div id="tab-me" hidden class="panel"></div>
+</div>
+<div id="tip"></div>
+
+<script>
+const D = __DATA__;
+const POS = ['QB','RB','WR','TE'];
+const P = D.players; const byId = {}; P.forEach(p => byId[p.id] = p);
+const S = {pos:'ALL', sig:'all', q:'', sort:'_vorp', dir:-1, start:D.nextWeek, end:17, sos:0, roster:[], give:[], get:[], example:false};
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const f1 = v => v == null || isNaN(v) ? '–' : v.toFixed(1);
+const pct = v => v == null || isNaN(v) ? '–' : Math.round(v * 100) + '%';
+
+/* ---------- projection math ---------- */
+function relOf(p, opp){ const r = D.dvp[p.pos]; return (r && r[opp]) || 0; }
+function projWeek(p, w){
+  const opp = (D.sched[p.team] || {})[w]; if (!opp) return null;
+  return Math.max(0, p.base * (1 + S.sos * relOf(p, opp)));
+}
+function weeks(){ const a = []; for (let w = S.start; w <= S.end; w++) a.push(w); return a; }
+function calc(p){
+  let g = 0, tot = 0, vorp = 0, rs = [];
+  for (const w of weeks()){
+    const v = projWeek(p, w); if (v == null) continue;
+    g++; tot += v; vorp += v - D.repl[p.pos];
+    const opp = D.sched[p.team][w]; rs.push(relOf(p, opp));
+  }
+  const nx = rs.slice(0, 4); p._g = g; p._tot = tot; p._vorp = vorp;
+  p._ease = nx.length ? nx.reduce((a, b) => a + b, 0) / nx.length : 0;
+  p._gap = p.ppr - p.xfp; p._rosdiff = p.base - p.ppr;
+}
+function signal(p){
+  if (p.n < 3) return 'small';
+  if (p.z >= 1.25) return 'sell'; if (p.z <= -1.25) return 'buy'; return 'none';
+}
+
+/* ---------- Over/Under tab ---------- */
+const COLS = [
+  ['name','Player',p=>p.name], ['n','G',p=>p.n], ['ppr','PPR/g',p=>p.ppr], ['xfp','xFP/g',p=>p.xfp],
+  ['_gap','Gap',p=>p._gap], ['z','z',p=>p.z], ['sig','Signal',null],
+  ['tgt','Tgt %',p=>p.tgt], ['air','Air %',p=>p.air], ['car','Car %',p=>p.car], ['snap','Snap %',p=>p.snap],
+  ['rzt','RZ tgt %',p=>p.rzt], ['glc','GL car %',p=>p.glc],
+  ['base','ROS PPG',p=>p.base], ['_rosdiff','Proj − pace',p=>p._rosdiff], ['_tot','ROS pts',p=>p._tot], ['_vorp','VORP',p=>p._vorp], ['_ease','Next 4 sched',p=>p._ease]
+];
+function visible(){
+  const q = S.q.trim().toLowerCase();
+  return P.filter(p => (S.pos === 'ALL' || p.pos === S.pos) &&
+    (S.sig === 'all' || signal(p) === S.sig) &&
+    (!q || p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q)));
+}
+function renderTable(){
+  P.forEach(calc);
+  const key = S.sort; const col = COLS.find(c => c[0] === key);
+  let rows = visible();
+  rows.sort((a, b) => {
+    let x, y;
+    if (key === 'sig'){ x = Math.abs(a.z); y = Math.abs(b.z); }
+    else if (key === 'name'){ return S.dir * a.name.localeCompare(b.name) * -1; }
+    else { x = col[2](a); y = col[2](b); }
+    x = x == null || isNaN(x) ? -1e9 : x; y = y == null || isNaN(y) ? -1e9 : y;
+    return S.dir * (x - y);
+  });
+  const thead = '<tr>' + COLS.map(c => `<th data-k="${c[0]}" tabindex="0" ${S.sort === c[0] ? `aria-sort="${S.dir > 0 ? 'ascending' : 'descending'}"` : ''}>${c[1]}</th>`).join('') + '</tr>';
+  $('tbl').tHead.innerHTML = thead;
+  const body = rows.slice(0, 250).map(p => {
+    const s = signal(p);
+    const pill = s === 'sell' ? '<span class="pill sell">Sell high</span>' : s === 'buy' ? '<span class="pill buy">Buy low</span>' : s === 'small' ? '<span class="pill warn">Small sample</span>' : '<span class="pill none">–</span>';
+    const inj = p.inj ? `<span class="pill warn" title="${esc(p.injd || '')}">${esc(p.inj)}</span>` : '';
+    const zc = p.z > 0 ? 'pos' : 'neg';
+    const zw = Math.min(Math.abs(p.z) / 3, 1) * 28;
+    const zbar = `<span class="zbar" aria-hidden="true"><i style="left:${p.z >= 0 ? 28 : 28 - zw}px;width:${zw}px;background:var(${p.z >= 0 ? '--sell' : '--buy'})"></i></span>`;
+    const gc = p._gap > 0 ? 'pos' : 'neg';
+    const dc = p._rosdiff > 0 ? 'neg' : 'pos';
+    return `<tr><td><span class="chip">${p.pos}</span><span class="pname">${esc(p.name)}</span> ${inj}<div class="pmeta">${p.team}</div></td>
+      <td class="num">${p.n}</td><td class="num">${f1(p.ppr)}</td><td class="num">${f1(p.xfp)}</td>
+      <td class="num ${gc}">${p._gap > 0 ? '+' : ''}${f1(p._gap)}</td><td class="num ${zc}">${p.z > 0 ? '+' : ''}${f1(p.z)}${zbar}</td><td>${pill}</td>
+      <td class="num">${pct(p.tgt)}</td><td class="num">${pct(p.air)}</td><td class="num">${pct(p.car)}</td><td class="num">${pct(p.snap)}</td>
+      <td class="num">${pct(p.rzt)}</td><td class="num">${pct(p.glc)}</td>
+      <td class="num"><b>${f1(p.base)}</b></td><td class="num ${dc}">${p._rosdiff > 0 ? '+' : ''}${f1(p._rosdiff)}</td>
+      <td class="num">${Math.round(p._tot)}</td><td class="num">${p._vorp > 0 ? '+' : ''}${Math.round(p._vorp)}</td>
+      <td class="num ${p._ease > 0 ? 'neg' : 'pos'}" title="Positive = softer upcoming defenses">${p._ease > 0 ? '+' : ''}${(p._ease * 100).toFixed(0)}%</td></tr>`;
+  }).join('');
+  $('tbl').tBodies[0].innerHTML = body;
+  $('tnote').textContent = `${rows.length} players. Gap = PPR/g − xFP/g. z = gap in standard errors (above 0 = hot). ROS PPG is the model's rest-of-season rate. VORP = points over a waiver-level ${POS.map(x => x + ' ' + D.repl[x].toFixed(1)).join(', ')} replacement across weeks ${S.start}–${S.end}.`;
+  drawScatter(rows);
+}
+function drawScatter(rows){
+  const svg = $('scatter'); const W = 520, H = 460, L = 44, R = 12, T = 12, B = 40;
+  const pts = rows.filter(p => p.n >= 1);
+  const M = Math.max(10, Math.ceil(Math.max(...pts.map(p => Math.max(p.xfp, p.ppr)), 10) / 5) * 5);
+  const X = v => L + v / M * (W - L - R), Y = v => H - B - v / M * (H - T - B);
+  let s = '';
+  for (let v = 0; v <= M; v += 5){
+    s += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line2)"/><text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${v}</text>`;
+    s += `<text x="${X(v)}" y="${H - B + 16}" text-anchor="middle">${v}</text>`;
+  }
+  s += `<line x1="${X(0)}" y1="${Y(0)}" x2="${X(M)}" y2="${Y(M)}" stroke="var(--muted)" stroke-dasharray="4 4"/>`;
+  s += `<text x="${(L + W - R) / 2}" y="${H - 6}" text-anchor="middle">Expected PPR points per game (xFP)</text>`;
+  s += `<text transform="translate(12 ${(T + H - B) / 2}) rotate(-90)" text-anchor="middle">Actual PPR points per game</text>`;
+  pts.forEach((p, i) => {
+    const sg = signal(p); const filled = sg === 'sell' || sg === 'buy';
+    const col = sg === 'sell' ? 'var(--sell)' : sg === 'buy' ? 'var(--buy)' : 'var(--muted)';
+    s += `<circle data-i="${i}" cx="${X(p.xfp)}" cy="${Y(p.ppr)}" r="${filled ? 4.5 : 3.5}" fill="${col}" fill-opacity="${filled ? 0.95 : 0.35}" stroke="var(--panel)" stroke-width="1.5"/>`;
+  });
+  const top = pts.filter(p => p.n >= 3).sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 6);
+  top.forEach(p => { s += `<text x="${X(p.xfp) + 7}" y="${Y(p.ppr) - 5}" style="fill:var(--ink2);font-family:var(--body)">${esc(p.name.split(' ').slice(-1)[0])}</text>`; });
+  svg.innerHTML = s; svg._pts = pts; svg._X = X; svg._Y = Y; svg._W = W; svg._H = H;
+}
+function tipShow(html, x, y){
+  const t = $('tip'); t.innerHTML = html; t.style.display = 'block';
+  const w = t.offsetWidth, h = t.offsetHeight;
+  t.style.left = Math.min(x + 14, innerWidth - w - 8) + 'px'; t.style.top = Math.max(8, Math.min(y - h - 10, innerHeight - h - 8)) + 'px';
+}
+$('scatter').addEventListener('pointermove', e => {
+  const svg = e.currentTarget; if (!svg._pts) return;
+  const r = svg.getBoundingClientRect(); const k = svg._W / r.width;
+  const mx = (e.clientX - r.left) * k, my = (e.clientY - r.top) * k;
+  let best = null, bd = 18;
+  svg._pts.forEach(p => { const d = Math.hypot(svg._X(p.xfp) - mx, svg._Y(p.ppr) - my); if (d < bd){ bd = d; best = p; } });
+  if (!best){ $('tip').style.display = 'none'; return; }
+  tipShow(`<b>${esc(best.name)}</b> · ${best.pos} ${best.team}<br>PPR/g ${f1(best.ppr)} vs xFP/g ${f1(best.xfp)}<br>z ${best.z > 0 ? '+' : ''}${f1(best.z)} over ${best.n} game${best.n > 1 ? 's' : ''}`, e.clientX, e.clientY);
+});
+$('scatter').addEventListener('pointerleave', () => $('tip').style.display = 'none');
+
+/* ---------- Trade evaluator ---------- */
+const SLOTS = {QB:1, RB:2, WR:2, TE:1, FLEX:1};
+function lineupTotal(ids){
+  const pl = ids.map(i => byId[i]).filter(Boolean); let total = 0;
+  for (const w of weeks()){
+    const by = {QB:[], RB:[], WR:[], TE:[]};
+    pl.forEach(p => { const v = projWeek(p, w); if (v != null) by[p.pos].push(v); });
+    const need = {QB:1, RB:3, WR:3, TE:2};
+    POS.forEach(x => { for (let i = 0; i < need[x]; i++) by[x].push(D.repl[x]); by[x].sort((a, b) => b - a); });
+    total += by.QB[0] + by.RB[0] + by.RB[1] + by.WR[0] + by.WR[1] + by.TE[0] + Math.max(by.RB[2], by.WR[2], by.TE[1]);
+  }
+  return total;
+}
+function erf(x){ const s = x < 0 ? -1 : 1; x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; }
+const Phi = z => 0.5 * (1 + erf(z / Math.SQRT2));
+function renderResult(){
+  P.forEach(calc);
+  const give = S.give.map(i => byId[i]).filter(Boolean), get = S.get.map(i => byId[i]).filter(Boolean);
+  const box = $('result');
+  if (!give.length && !get.length){ box.innerHTML = '<h2>Verdict</h2><p class="note">Add players to “I give” and “I get”.</p>'; return; }
+  const hasRoster = S.roster.length > 0;
+  const gset = new Set(S.give);
+  const before = hasRoster ? S.roster.slice() : [];
+  const after = hasRoster ? S.roster.filter(i => !gset.has(i)).concat(S.get.filter(i => !S.roster.includes(i))) : [];
+  let delta, mode;
+  if (hasRoster){ delta = lineupTotal(after) - lineupTotal(before); mode = 'lineup'; }
+  else { delta = get.reduce((a, p) => a + p._vorp, 0) - give.reduce((a, p) => a + p._vorp, 0); mode = 'value'; }
+  const wk = weeks().length;
+  const involved = give.concat(get);
+  const sd = Math.sqrt(involved.reduce((a, p) => a + Math.pow((D.sd[p.pos] || 4) * p._g, 2), 0));
+  const prob = Phi(delta / (sd || 1));
+  const cls = delta >= 0 ? 'big-good' : 'big-bad';
+  const verdict = Math.abs(prob - 0.5) < 0.08 ? 'Close to even' : prob > 0.5 ? 'Favors you' : 'Favors them';
+  const warn = [];
+  involved.forEach(p => { if (p.inj) warn.push(`${esc(p.name)} is listed ${esc(p.inj)}${p.injd ? ' (' + esc(p.injd) + ')' : ''}.`); if (p.n < 3) warn.push(`${esc(p.name)} has only ${p.n} game${p.n > 1 ? 's' : ''}; projection leans on last year.`); });
+  const line = (p, sign) => `<tr><td><span class="chip">${p.pos}</span>${esc(p.name)} <span class="pmeta">${p.team}</span></td><td class="num">${f1(p.base)}</td><td class="num">${p._g}</td><td class="num">${Math.round(p._tot)}</td><td class="num">${p._vorp > 0 ? '+' : ''}${Math.round(p._vorp)}</td><td>${signal(p) === 'sell' ? '<span class="pill sell">Sell high</span>' : signal(p) === 'buy' ? '<span class="pill buy">Buy low</span>' : ''}</td></tr>`;
+  box.innerHTML = `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:baseline"><h2>Verdict: ${verdict}</h2><span class="note">${mode === 'lineup' ? 'Measured as the change in your best weekly lineup' : 'No roster entered, so this compares total value over replacement'}, weeks ${S.start}–${S.end}</span></div>
+  <div class="verdict">
+    <div class="stat"><div class="v ${cls}">${delta >= 0 ? '+' : ''}${delta.toFixed(0)}</div><div class="k">Points for you over ${wk} wks</div></div>
+    <div class="stat"><div class="v ${cls}">${delta >= 0 ? '+' : ''}${(delta / Math.max(wk, 1)).toFixed(1)}</div><div class="k">Per week</div></div>
+    <div class="stat"><div class="v">${Math.round(prob * 100)}%</div><div class="k">Chance it helps (rough)</div></div>
+    <div class="stat"><div class="v mono" style="font-size:26px">±${sd.toFixed(0)}</div><div class="k">Projection error (1σ)</div></div>
+  </div>
+  <div class="tablewrap" style="max-height:none"><table><thead><tr><th>Player</th><th>ROS PPG</th><th>G</th><th>ROS pts</th><th>VORP</th><th>Signal</th></tr></thead>
+  <tbody><tr><td colspan="6" class="lbl" style="text-align:left;background:var(--bg)">You give</td></tr>${give.map(p => line(p)).join('') || '<tr><td colspan="6" class="note">none</td></tr>'}
+  <tr><td colspan="6" class="lbl" style="text-align:left;background:var(--bg)">You get</td></tr>${get.map(p => line(p)).join('') || '<tr><td colspan="6" class="note">none</td></tr>'}</tbody></table></div>
+  ${warn.length ? `<div class="example">${warn.join(' ')}</div>` : ''}
+  <p class="note">The lineup is re-optimized every week (QB, 2 RB, 2 WR, TE, FLEX), byes included, and empty slots are filled at waiver level. The error band treats each player's projection error as independent, so read the percentage as a guide, not a guarantee.</p>`;
+}
+
+/* ---------- pickers ---------- */
+function persist(){ try { localStorage.setItem('ptd-roster', JSON.stringify(S.roster)); } catch (e) {} }
+function makePicker(id, placeholder, onPick, exclude){
+  const host = $(id); host.innerHTML = `<input type="text" placeholder="${placeholder}" aria-label="${placeholder}" autocomplete="off"><div class="dd" hidden></div>`;
+  const inp = host.querySelector('input'), dd = host.querySelector('.dd');
+  function list(){
+    const q = inp.value.trim().toLowerCase(); if (!q){ dd.hidden = true; return; }
+    const ex = exclude ? exclude() : [];
+    const m = P.filter(p => !ex.includes(p.id) && (p.name.toLowerCase().includes(q) || p.team.toLowerCase() === q)).sort((a, b) => b.base - a.base).slice(0, 8);
+    dd.innerHTML = m.map(p => `<button type="button" data-id="${p.id}"><span><span class="chip">${p.pos}</span>${esc(p.name)} <span class="pmeta">${p.team}</span></span><span class="num">${f1(p.base)}</span></button>`).join('') || '<div class="note" style="padding:8px">No match</div>';
+    dd.hidden = false;
+  }
+  inp.addEventListener('input', list);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ const b = dd.querySelector('button'); if (b) b.click(); } });
+  dd.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; onPick(b.dataset.id); inp.value = ''; dd.hidden = true; });
+  document.addEventListener('click', e => { if (!host.contains(e.target)) dd.hidden = true; });
+}
+function renderTags(){
+  const mk = (arr, key) => arr.map(i => byId[i]).filter(Boolean).map(p => `<span class="tag"><span class="chip">${p.pos}</span>${esc(p.name)}<button type="button" aria-label="Remove ${esc(p.name)}" data-k="${key}" data-id="${p.id}">×</button></span>`).join('') || '<span class="note">Empty</span>';
+  $('tg-roster').innerHTML = mk(S.roster, 'roster'); $('tg-give').innerHTML = mk(S.give, 'give'); $('tg-get').innerHTML = mk(S.get, 'get');
+  $('exNote').hidden = !S.example;
+  renderResult();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('.tag button'); if (!b) return;
+  const k = b.dataset.k; S[k] = S[k].filter(i => i !== b.dataset.id);
+  if (k === 'roster'){ S.example = false; persist(); } renderTags();
+});
+$('clearRoster').addEventListener('click', () => { S.roster = []; S.give = []; S.example = false; persist(); renderTags(); });
+makePicker('pk-roster', 'Add a player to your roster', id => { if (!S.roster.includes(id)) S.roster.push(id); if (S.example){ S.example = false; S.roster = S.roster.filter(i => i === id); S.give = []; S.get = []; } persist(); renderTags(); }, () => S.roster);
+makePicker('pk-give', 'Player you would trade away', id => { if (!S.give.includes(id)) S.give.push(id); renderTags(); }, () => S.give);
+makePicker('pk-get', 'Player you would receive', id => { if (!S.get.includes(id)) S.get.push(id); renderTags(); }, () => S.get);
+
+/* ---------- controls ---------- */
+function seg(id, opts, key, cb){
+  const el = $(id); el.innerHTML = opts.map(o => `<button type="button" data-v="${o[0]}" aria-pressed="${S[key] === o[0]}">${o[1]}</button>`).join('');
+  el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S[key] = b.dataset.v; el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); cb(); });
+}
+seg('posSeg', [['ALL','All'], ['QB','QB'], ['RB','RB'], ['WR','WR'], ['TE','TE']], 'pos', renderTable);
+seg('sigSeg', [['all','All'], ['sell','Sell high'], ['buy','Buy low']], 'sig', renderTable);
+$('q').addEventListener('input', e => { S.q = e.target.value; renderTable(); });
+$('tbl').tHead.addEventListener('click', e => { const th = e.target.closest('th'); if (!th) return; const k = th.dataset.k; if (S.sort === k) S.dir *= -1; else { S.sort = k; S.dir = k === 'name' ? 1 : -1; } renderTable(); });
+$('tbl').tHead.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.target.click(); } });
+function fillWeeks(){
+  $('wStart').innerHTML = Array.from({length: 18 - D.nextWeek}, (_, i) => D.nextWeek + i).filter(w => w <= 17).map(w => `<option value="${w}">Week ${w}</option>`).join('');
+  $('wEnd').innerHTML = [14, 15, 16, 17, 18].map(w => `<option value="${w}">Week ${w}</option>`).join('');
+  $('wStart').value = S.start; $('wEnd').value = S.end;
+}
+function sosNote(){ $('sosNote').textContent = S.sos === 0 ? 'Schedule is shown (Next 4 sched column) but not applied. In 2024–25 backtests it did not improve projections once usage was known.' : 'Projections are scaled by the shrunk defense-vs-position rating of each opponent. This was not validated as an improvement in backtests.'; }
+$('wStart').addEventListener('change', e => { S.start = +e.target.value; if (S.end < S.start) { S.end = S.start; $('wEnd').value = S.end; } refresh(); });
+$('wEnd').addEventListener('change', e => { S.end = +e.target.value; if (S.end < S.start) { S.start = S.end; $('wStart').value = S.start; } refresh(); });
+$('sosW').addEventListener('input', e => { S.sos = +e.target.value; $('sosVal').textContent = S.sos.toFixed(2); sosNote(); refresh(); });
+function refresh(){ renderTable(); renderResult(); }
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
+  ['ou','tr','me'].forEach(k => { const el = $('tab-' + k); el.hidden = k !== t.dataset.tab; if (k === 'ou') el.style.display = k !== t.dataset.tab ? 'none' : ''; });
+  if (t.dataset.tab === 'tr') renderResult();
+}));
+
+/* ---------- method tab ---------- */
+function renderMethod(){
+  const R = D.summary.rmse, C = D.summary.coefs;
+  const imp = ((R.naive - R.model) / R.naive * 100).toFixed(1);
+  $('tab-me').innerHTML = `<div class="math">
+  <section><h2>1. Expected points from opportunity</h2>
+    <p>Every target, rush and pass attempt gets an expected PPR value based on what the play looked like, not how it ended.</p>
+    <div class="eq">target:  xFP = E[ catch + 0.1·rec_yds + 6·TD | air yards, yard line, down, distance, location, position ]
+rush:    xFP = E[ 0.1·rush_yds + 6·TD | yard line, down, distance, goal-to-go, run gap, position ]
+QB pass: xFP = E[ 0.04·pass_yds + 4·TD − 2·INT | air yards, yard line, down, distance ]</div>
+    <p>These are gradient-boosted trees fit on 2024–25 plays and cross-fitted by season, so no season is scored by a model that saw it. Player xFP is the sum over plays. Across positions and seasons, mean xFP lands within about 0.1–0.4 points per game of mean actual PPR.</p></section>
+  <section><h2>2. Over/under-performance</h2>
+    <div class="eq">gap_g  = PPR_g − xFP_g
+z      = Σ gap_g / √( Σ Var(gap | xFP_g) )      Var = v0 + v1·xFP, fit by position</div>
+    <p>The z-score asks how many standard errors a player's total gap is from zero. A big gap over one game is noise; the same gap over five is a signal. Signals need at least 3 games and |z| ≥ 1.25.</p></section>
+  <section><h2>3. Rest-of-season projection</h2>
+    <div class="eq">ROS_PPG = a_pos + b1·xFP_season + b2·xFP_last3 + b3·gap_per_game + b4·snap% + b5·PPG_last_year + b6·has_prior</div>
+    <p>One ridge regression per position, trained on 2024 and 2025 using five different cutoff weeks (4–8) and tested on the season it never saw. Players with fewer than 3 games are pulled toward last year's PPG (or the position median) with weight n/3.</p>
+    <table><thead><tr><th>Out-of-sample error (RMSE, PPG)</th><th>Value</th></tr></thead><tbody>
+      <tr><td>Naive: current PPG</td><td class="num">${R.naive.toFixed(2)}</td></tr>
+      <tr><td>Current xFP per game</td><td class="num">${R.xfp.toFixed(2)}</td></tr>
+      <tr><td>This model</td><td class="num"><b>${R.model.toFixed(2)}</b> (${imp}% better than naive)</td></tr></tbody></table>
+    <p class="note">Fitted weight on the gap term: QB ${C.QB.resid_pg}, RB ${C.RB.resid_pg}, WR ${C.WR.resid_pg}, TE ${C.TE.resid_pg}. That is how much of each extra point above xFP carries into the projection, so over-performance is partly real skill and partly luck, and the model keeps only the part the data supports.</p></section>
+  <section><h2>4. Strength of schedule</h2>
+    <div class="eq">PPR_allowed(team-game, pos) = offense_effect + defense_effect + ε      (ridge, λ = ${D.summary.lam})
+softness_d = defense_effect_d / league_mean
+projection_w = base × (1 + β · softness of opponent in week w)</div>
+    <p>Defenses' softness does persist from early to late season (correlation about 0.15–0.35). At the player level, though, once usage is known the effect was too small to detect: the fitted β changed sign between folds and positions, and error did not improve. So β defaults to 0 and the schedule is shown, not applied. The slider lets you apply it anyway. Only 2026 results feed the defense ratings.</p></section>
+  <section><h2>5. Value and trades</h2>
+    <div class="eq">VORP = Σ over remaining weeks (projected points − replacement points)
+replacement = best non-starter in a 12-team 1QB/2RB/2WR/1TE/1FLEX league: ${POS.map(x => x + ' ' + D.repl[x].toFixed(1)).join(', ')}
+trade value = Σ_weeks [ best lineup after trade − best lineup before ]</div>
+    <p>With a roster entered, each week's lineup is re-optimized with and without the trade, with byes handled and empty slots filled at replacement level. Error bands use the out-of-sample RMSE by position (${POS.map(x => x + ' ' + D.sd[x].toFixed(1)).join(', ')}) times games, treated as independent.</p></section>
+  <section><h2>Limits</h2><p>Injuries beyond the latest report, role changes after a teammate's injury, trades and coaching changes are not modeled. Routes run and personnel groupings are not in the public data. Data: nflverse play-by-play, weekly stats, snap counts and injury reports through ${D.asOf}.</p></section></div>`;
+}
+
+/* ---------- init ---------- */
+(function init(){
+  $('hdrsub').textContent = `2026 season through ${D.asOf}. 12-team PPR, 1 QB / 2 RB / 2 WR / 1 TE / 1 FLEX. Usage-based expected points, backtested on 2024–25.`;
+  fillWeeks(); sosNote(); renderMethod();
+  let saved = null; try { saved = JSON.parse(localStorage.getItem('ptd-roster') || 'null'); } catch (e) {}
+  if (Array.isArray(saved) && saved.length){ S.roster = saved.filter(i => byId[i]); }
+  else {
+    S.example = true; const by = pos => P.filter(p => p.pos === pos).sort((a, b) => b.base - a.base);
+    const pick = [by('QB')[7], by('RB')[5], by('RB')[13], by('RB')[24], by('WR')[4], by('WR')[11], by('WR')[22], by('WR')[29], by('TE')[6]].filter(Boolean);
+    S.roster = pick.map(p => p.id);
+    const wr = pick.filter(p => p.pos === 'WR' && p.n >= 3).sort((a, b) => b.z - a.z)[0];
+    const tgt = P.filter(p => p.pos === 'WR' && p.n >= 3 && !S.roster.includes(p.id) && p.z <= -0.8).sort((a, b) => b.base - a.base)[0];
+    if (wr) S.give = [wr.id]; if (tgt) S.get = [tgt.id];
+  }
+  renderTags(); refresh();
+})();
+</script>

@@ -1,0 +1,6 @@
+data/
+__pycache__/
+*.pyc
+output/playerweek.csv
+output/dashboard.html
+.DS_Store
