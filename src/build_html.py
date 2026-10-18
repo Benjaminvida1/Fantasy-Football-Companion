@@ -1,25 +1,75 @@
-import sys, os, json, numpy as np, pandas as pd
+"""Injects model output and the injury snapshot into the dashboard template.
+Usage: python3 build_html.py <out_dir>   (reads players_2026.csv, model_meta.json; writes dashboard.html)"""
+import sys, os, json, re, numpy as np, pandas as pd
+
 OUT = sys.argv[1]
 HERE = os.path.dirname(os.path.abspath(__file__))
+# Display cutoff for the injury list and badges (looser than the starter thresholds used in the transfer analysis,
+# so partial-game players such as a banged-up RB1 still show up).
+STAR_XFP = {'QB': 14.0, 'RB': 6.0, 'WR': 6.0, 'TE': 5.0}
+SUFFIX = {'jr', 'sr', 'ii', 'iii', 'iv'}
+
+
+def nn(v, d=4):
+    return None if (v is None or (isinstance(v, float) and np.isnan(v))) else round(float(v), d)
+
+
+def norm(name):
+    toks = re.sub(r"[.'’]", '', str(name).lower()).replace('-', ' ').split()
+    return ''.join(t for t in toks if t not in SUFFIX)
+
+
 cur = pd.read_csv(f'{OUT}/players_2026.csv')
 meta = json.load(open(f'{OUT}/model_meta.json'))
 S = meta['summary']
-def nn(v, d=4):
-    return None if (v is None or (isinstance(v, float) and np.isnan(v))) else round(float(v), d)
+
 players = []
 for _, r in cur.iterrows():
-    inj = r.report_status if (pd.notna(r.report_status) and r.inj_week >= 6) else None
     players.append(dict(id=r.gsis_id, name=r['name'], pos=r.pos, team=r.team, n=int(r.n),
         ppr=nn(r.ppr_pg, 2), xfp=nn(r.get('xfp_pg_raw', r.xfp_pg), 2), z=nn(r.z, 2) or 0.0, base=nn(r.base, 2),
         tgt=nn(r.tgt_share), air=nn(r.air_share), car=nn(r.car_share), snap=nn(r.snap_pct),
-        rzt=nn(r.rz_tgt_share), glc=nn(r.gl_car_share),
-        inj=inj, injd=(r.report_primary_injury if pd.notna(r.report_primary_injury) and inj else None)))
+        rzt=nn(r.rz_tgt_share), glc=nn(r.gl_car_share), inj=None, injd=None, tm=[]))
+
+# ---- injury snapshot (authoritative for current statuses; players not listed are treated as healthy) ----
+snap = json.load(open(os.path.join(HERE, '..', 'reference', 'nfl_injuries_week6.json')))
+idx = {(norm(p['name']), p['team']): p for p in players}
+unmatched = []
+for e in snap['players']:
+    p = idx.get((norm(e['name']), e['team']))
+    if p is None:
+        unmatched.append(f"{e['name']} ({e['pos']} {e['team']})"); continue
+    p['inj'], p['injd'] = e['status'], e['injury']
+
+is_star = lambda p: p['n'] >= 2 and p['xfp'] is not None and p['xfp'] >= STAR_XFP[p['pos']]
+by_team = {}
+for p in players:
+    by_team.setdefault(p['team'], []).append(p)
+inj_rows = []
+for t, ps in by_team.items():
+    out_stars = [q for q in ps if is_star(q) and q['inj'] in ('Out', 'Doubtful')]
+    for p in ps:
+        p['tm'] = [dict(id=q['id'], n=q['name'].split(' ', 1)[1] if ' ' in q['name'] else q['name'], pos=q['pos'], st=q['inj'])
+                   for q in out_stars if q['id'] != p['id']]
+    for q in ps:
+        if is_star(q) and q['inj'] in ('Out', 'Doubtful', 'Questionable'):
+            nxt = sorted([x for x in ps if x['id'] != q['id'] and x['pos'] in ('RB', 'WR', 'TE') and x['pos'] == q['pos'] and x['inj'] not in ('Out', 'Doubtful')],
+                         key=lambda x: -(x['xfp'] or 0))[:2]
+            if q['pos'] == 'QB':
+                nxt = sorted([x for x in ps if x['id'] != q['id'] and x['pos'] == 'QB' and x['inj'] not in ('Out', 'Doubtful')], key=lambda x: -(x['xfp'] or 0))[:1]
+            inj_rows.append(dict(id=q['id'], name=q['name'], pos=q['pos'], team=t, status=q['inj'], injury=q['injd'], xfp=q['xfp'],
+                                 next=[dict(name=x['name'], pos=x['pos'], xfp=x['xfp']) for x in nxt]))
+order = {'Out': 0, 'Doubtful': 1, 'Questionable': 2}
+inj_rows.sort(key=lambda x: (order[x['status']], -x['xfp']))
+print('injury entries matched:', len(snap['players']) - len(unmatched), 'of', len(snap['players']), '| unmatched:', unmatched)
+print('stars on report:', len(inj_rows), '| players with a teammate-out badge:', sum(1 for p in players if p['tm']))
+
 rm = S['rmse_table']; k = list(rm.keys())[0]
 data = dict(players=players, sched=meta['schedule'], dvp={p: {t: round(v, 4) for t, v in d.items()} for p, d in meta['dvp'].items()},
             repl={p: round(v, 3) for p, v in S['repl'].items()}, sd={p: round(v, 3) for p, v in S['sd'].items()},
             summary=dict(rmse=dict(naive=rm[k]['naive'], xfp=rm[k]['xfp'], model=rm[k]['model']), coefs=S['coefs'], lam=S['lam']),
-            nextWeek=6, asOf='Week 5 plus the Week 6 Thursday game (SEA at DEN)')
-tpl = open(os.path.join(HERE, 'template.html')).read()
-html = tpl.replace('__DATA__', json.dumps(data, separators=(',', ':'), default=float))
+            nextWeek=6, asOf='Week 5 plus the Week 6 Thursday game (SEA at DEN)',
+            inj=inj_rows, injSource=snap['source'])
+html = open(os.path.join(HERE, 'template.html')).read().replace('__DATA__', json.dumps(data, separators=(',', ':'), default=float))
 open(f'{OUT}/dashboard.html', 'w').write(html)
+open(f'{OUT}/dashboard_script.js', 'w').write(html.split('<script>')[1].split('</script>')[0])
 print(len(players), 'players;', len(html) // 1024, 'KB')

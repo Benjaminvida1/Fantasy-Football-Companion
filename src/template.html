@@ -8,17 +8,17 @@
 :root{
   --bg:#EDF0EE; --panel:#F8FAF9; --ink:#14201B; --ink2:#46544D; --muted:#6F7C75; --line:#D3DAD6; --line2:#E3E8E5;
   --sell:#B4410B; --sell-bg:#F6E3D8; --buy:#1C5EA6; --buy-bg:#DCE9F6; --accent:#1B6B4A; --accent-bg:#D8EBE1;
-  --warn:#8A6100; --warn-bg:#F4E8C6; --good:#1B6B4A; --bad:#A12D2D;
+  --warn:#8A6100; --warn-bg:#F4E8C6; --good:#1B6B4A; --bad:#A12D2D; --bad-bg:#F5DADA;
   --display:'Barlow Condensed','Arial Narrow',sans-serif; --body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0E1512; --panel:#161F1B; --ink:#E5ECE8; --ink2:#B4C0BA; --muted:#85938C; --line:#2A3631; --line2:#212C27;
   --sell:#F28F5B; --sell-bg:#3A2418; --buy:#78B0EE; --buy-bg:#17293C; --accent:#5CC595; --accent-bg:#17302A;
-  --warn:#E6BE55; --warn-bg:#33290F; --good:#5CC595; --bad:#F08080; color-scheme:dark}}
+  --warn:#E6BE55; --warn-bg:#33290F; --good:#5CC595; --bad:#F08080; --bad-bg:#3A1B1B; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0E1512; --panel:#161F1B; --ink:#E5ECE8; --ink2:#B4C0BA; --muted:#85938C; --line:#2A3631; --line2:#212C27;
   --sell:#F28F5B; --sell-bg:#3A2418; --buy:#78B0EE; --buy-bg:#17293C; --accent:#5CC595; --accent-bg:#17302A;
-  --warn:#E6BE55; --warn-bg:#33290F; --good:#5CC595; --bad:#F08080; color-scheme:dark}
+  --warn:#E6BE55; --warn-bg:#33290F; --good:#5CC595; --bad:#F08080; --bad-bg:#3A1B1B; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--body);padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
@@ -86,6 +86,12 @@ tr:hover td{background:var(--bg)}
 .stat .k{font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .big-good{color:var(--good)}.big-bad{color:var(--bad)}
 .example{background:var(--warn-bg);color:var(--warn);font-size:12px;padding:6px 10px;border-radius:3px}
+.pill.out{background:var(--bad-bg);color:var(--bad)}
+.inj-wrap{display:flex;flex-direction:column;gap:12px}
+.inj-wrap td:first-child,.inj-wrap th:first-child{position:static}
+.inj-wrap td{white-space:normal;text-align:left;vertical-align:top}
+.inj-wrap th{text-align:left;cursor:default}
+.inj-wrap select{padding:4px 6px;font-size:13px}
 .math{display:flex;flex-direction:column;gap:18px}
 .math section{display:flex;flex-direction:column;gap:6px;max-width:80ch}
 .eq{font:13px/1.6 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:8px 12px;overflow-x:auto;white-space:pre}
@@ -104,6 +110,7 @@ tr:hover td{background:var(--bg)}
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" id="t-ou" aria-selected="true" data-tab="ou">Over / Under</button>
       <button class="tab" role="tab" id="t-tr" aria-selected="false" data-tab="tr">Trade evaluator</button>
+      <button class="tab" role="tab" id="t-in" aria-selected="false" data-tab="in">Injuries</button>
       <button class="tab" role="tab" id="t-me" aria-selected="false" data-tab="me">Method</button>
     </div>
   </header>
@@ -153,6 +160,14 @@ tr:hover td{background:var(--bg)}
   </div>
 
   <!-- TAB 3 -->
+  <!-- TAB 3: injuries -->
+  <div id="tab-in" hidden class="panel inj-wrap">
+    <h2>Injured skill players</h2>
+    <p class="sub" id="injSrc"></p>
+    <p class="note">Context only. In a 2024–25 backtest, adjusting projections for teammate absences did not improve accuracy (see Method), so nothing here changes projections or trade values. Your return-week notes appear as badges in the player table and are saved in this browser.</p>
+    <div class="tablewrap" style="max-height:none"><table id="injTbl"><thead><tr><th>Team</th><th>Player</th><th>Status</th><th>Injury</th><th>xFP/g</th><th>Back in</th><th>Next up on the depth chart</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
   <div id="tab-me" hidden class="panel"></div>
 </div>
 <div id="tip"></div>
@@ -161,7 +176,14 @@ tr:hover td{background:var(--bg)}
 const D = __DATA__;
 const POS = ['QB','RB','WR','TE'];
 const P = D.players; const byId = {}; P.forEach(p => byId[p.id] = p);
-const S = {pos:'ALL', sig:'all', q:'', sort:'_vorp', dir:-1, start:D.nextWeek, end:17, sos:0, roster:[], give:[], get:[], example:false};
+const S = {pos:'ALL', sig:'all', q:'', sort:'_vorp', dir:-1, start:D.nextWeek, end:17, sos:0, roster:[], give:[], get:[], example:false, ret:{}};
+try { S.ret = JSON.parse(localStorage.getItem('ptd-return') || '{}') || {}; } catch (e) { S.ret = {}; }
+function saveRet(){ try { localStorage.setItem('ptd-return', JSON.stringify(S.ret)); } catch (e) {} }
+function retLabel(id){ const w = S.ret[id]; return !w ? '' : w === 'ROS' ? ' (out for season)' : ' (back wk ' + w + ')'; }
+function tmBadge(p){
+  if (!p.tm || !p.tm.length) return '';
+  return `<div class="pmeta"><span class="pill warn" title="A starter on this team is out this week">Teammate out</span> ${p.tm.map(x => esc(x.n) + ' ' + x.pos + (x.st === 'Doubtful' ? ' (doubtful)' : '') + esc(retLabel(x.id))).join(', ')}</div>`;
+}
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f1 = v => v == null || isNaN(v) ? '–' : v.toFixed(1);
@@ -201,7 +223,7 @@ const COLS = [
 function visible(){
   const q = S.q.trim().toLowerCase();
   return P.filter(p => (S.pos === 'ALL' || p.pos === S.pos) &&
-    (S.sig === 'all' || signal(p) === S.sig) &&
+    (S.sig === 'all' || (S.sig === 'tm' ? !!(p.tm && p.tm.length) : signal(p) === S.sig)) &&
     (!q || p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q)));
 }
 function renderTable(){
@@ -227,7 +249,7 @@ function renderTable(){
     const zbar = `<span class="zbar" aria-hidden="true"><i style="left:${p.z >= 0 ? 28 : 28 - zw}px;width:${zw}px;background:var(${p.z >= 0 ? '--sell' : '--buy'})"></i></span>`;
     const gc = p._gap > 0 ? 'pos' : 'neg';
     const dc = p._rosdiff > 0 ? 'neg' : 'pos';
-    return `<tr><td><span class="chip">${p.pos}</span><span class="pname">${esc(p.name)}</span> ${inj}<div class="pmeta">${p.team}</div></td>
+    return `<tr><td><span class="chip">${p.pos}</span><span class="pname">${esc(p.name)}</span> ${inj}<div class="pmeta">${p.team}</div>${tmBadge(p)}</td>
       <td class="num">${p.n}</td><td class="num">${f1(p.ppr)}</td><td class="num">${f1(p.xfp)}</td>
       <td class="num ${gc}">${p._gap > 0 ? '+' : ''}${f1(p._gap)}</td><td class="num ${zc}">${p.z > 0 ? '+' : ''}${f1(p.z)}${zbar}</td><td>${pill}</td>
       <td class="num">${pct(p.tgt)}</td><td class="num">${pct(p.air)}</td><td class="num">${pct(p.car)}</td><td class="num">${pct(p.snap)}</td>
@@ -368,7 +390,7 @@ function seg(id, opts, key, cb){
   el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; S[key] = b.dataset.v; el.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); cb(); });
 }
 seg('posSeg', [['ALL','All'], ['QB','QB'], ['RB','RB'], ['WR','WR'], ['TE','TE']], 'pos', renderTable);
-seg('sigSeg', [['all','All'], ['sell','Sell high'], ['buy','Buy low']], 'sig', renderTable);
+seg('sigSeg', [['all','All'], ['sell','Sell high'], ['buy','Buy low'], ['tm','Teammate out']], 'sig', renderTable);
 $('q').addEventListener('input', e => { S.q = e.target.value; renderTable(); });
 $('tbl').tHead.addEventListener('click', e => { const th = e.target.closest('th'); if (!th) return; const k = th.dataset.k; if (S.sort === k) S.dir *= -1; else { S.sort = k; S.dir = k === 'name' ? 1 : -1; } renderTable(); });
 $('tbl').tHead.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.target.click(); } });
@@ -386,9 +408,28 @@ function refresh(){ renderTable(); renderResult(); }
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
-  ['ou','tr','me'].forEach(k => { const el = $('tab-' + k); el.hidden = k !== t.dataset.tab; if (k === 'ou') el.style.display = k !== t.dataset.tab ? 'none' : ''; });
+  ['ou','tr','in','me'].forEach(k => { const el = $('tab-' + k); el.hidden = k !== t.dataset.tab; if (k === 'ou') el.style.display = k !== t.dataset.tab ? 'none' : ''; });
   if (t.dataset.tab === 'tr') renderResult();
 }));
+
+/* ---------- injuries tab ---------- */
+function renderInjuries(){
+  $('injSrc').textContent = D.injSource;
+  const pill = s => `<span class="pill ${s === 'Out' ? 'out' : 'warn'}">${esc(s)}</span>`;
+  const wk = Array.from({length: 18 - D.nextWeek}, (_, i) => D.nextWeek + 1 + i);
+  $('injTbl').tBodies[0].innerHTML = D.inj.map(x => {
+    const cur = S.ret[x.id] || '';
+    const opts = ['<option value="">–</option>'].concat(wk.map(w => `<option value="${w}"${String(cur) === String(w) ? ' selected' : ''}>Week ${w}</option>`), [`<option value="ROS"${cur === 'ROS' ? ' selected' : ''}>Out for season</option>`]).join('');
+    return `<tr><td>${x.team}</td><td><span class="chip">${x.pos}</span><span class="pname">${esc(x.name)}</span></td><td>${pill(x.status)}</td><td>${esc(x.injury)}</td><td class="num">${f1(x.xfp)}</td>
+      <td><select data-id="${x.id}" aria-label="Expected return week for ${esc(x.name)}">${opts}</select></td>
+      <td>${x.next.map(n => `${esc(n.name)} <span class="pmeta">${n.pos} ${f1(n.xfp)}</span>`).join(', ') || '<span class="note">none listed</span>'}</td></tr>`;
+  }).join('') || '<tr><td colspan="7" class="note">No injured starters on the report.</td></tr>';
+}
+$('injTbl').addEventListener('change', e => {
+  const s = e.target.closest('select'); if (!s) return;
+  if (s.value) S.ret[s.dataset.id] = s.value; else delete S.ret[s.dataset.id];
+  saveRet(); renderTable();
+});
 
 /* ---------- method tab ---------- */
 function renderMethod(){
@@ -423,13 +464,23 @@ projection_w = base × (1 + β · softness of opponent in week w)</div>
 replacement = best non-starter in a 12-team 1QB/2RB/2WR/1TE/1FLEX league: ${POS.map(x => x + ' ' + D.repl[x].toFixed(1)).join(', ')}
 trade value = Σ_weeks [ best lineup after trade − best lineup before ]</div>
     <p>With a roster entered, each week's lineup is re-optimized with and without the trade, with byes handled and empty slots filled at replacement level. Error bands use the out-of-sample RMSE by position (${POS.map(x => x + ' ' + D.sd[x].toFixed(1)).join(', ')}) times games, treated as independent.</p></section>
-  <section><h2>Limits</h2><p>Injuries beyond the latest report, role changes after a teammate's injury, trades and coaching changes are not modeled. Routes run and personnel groupings are not in the public data. Data: nflverse play-by-play, weekly stats, snap counts and injury reports through ${D.asOf}.</p></section></div>`;
+  <section><h2>6. Teammate injuries (tested, not applied)</h2>
+    <p>When a starter is out, teammates do pick up part of his usage. Across 207 games in 2024–25 with exactly one RB, WR or TE starter out, his RB/WR/TE teammates together gained about 0.64 (RB out), 0.49 (WR out) and 0.61 (TE out) of his lost xFP, net of teams with nobody out. These rates are noisy and the one-week test below shows they run high. In a first pass, the gain over teammates' trailing averages was gone by the fourth straight game out, because the averages catch up.</p>
+    <p>I tested two ways to use it in the projection: removing games played while a starter was out from a player's baseline, and adding a boost for the weeks a starter is expected to be out. Same folds and filters as above:</p>
+    <table><thead><tr><th>Variant</th><th>RMSE (PPG)</th></tr></thead><tbody>
+      <tr><td>Current model</td><td class="num"><b>3.880</b></td></tr>
+      <tr><td>Strip boosted games</td><td class="num">3.906</td></tr>
+      <tr><td>Strip + boost, starter assumed out 2 more games</td><td class="num">3.914</td></tr>
+      <tr><td>Strip + boost, exact return weeks known</td><td class="num">4.046</td></tr>
+      <tr><td>Same, boost weight fitted to the data</td><td class="num">3.892</td></tr></tbody></table>
+    <p>None beat the current model, so projections and trade values ignore teammate injuries. One week ahead, the boost predicted +0.95 xFP for teammates against +0.54 observed, and improved predictions only for RBs. The Injuries tab shows who is out and lets you record return weeks as context.</p></section>
+  <section><h2>Limits</h2><p>Role changes after a teammate's injury, trades and coaching changes are not modeled, and neither are injuries to starters in projections (see section 6). Routes run and personnel groupings are not in the public data. Data: nflverse play-by-play, weekly stats, snap counts and schedules through ${D.asOf}. Injury statuses: ${D.injSource}</p></section></div>`;
 }
 
 /* ---------- init ---------- */
 (function init(){
   $('hdrsub').textContent = `2026 season through ${D.asOf}. 12-team PPR, 1 QB / 2 RB / 2 WR / 1 TE / 1 FLEX. Usage-based expected points, backtested on 2024–25.`;
-  fillWeeks(); sosNote(); renderMethod();
+  fillWeeks(); sosNote(); renderMethod(); renderInjuries();
   let saved = null; try { saved = JSON.parse(localStorage.getItem('ptd-roster') || 'null'); } catch (e) {}
   if (Array.isArray(saved) && saved.length){ S.roster = saved.filter(i => byId[i]); }
   else {
