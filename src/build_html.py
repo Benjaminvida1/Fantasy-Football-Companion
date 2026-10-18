@@ -71,5 +71,4 @@ data = dict(players=players, sched=meta['schedule'], dvp={p: {t: round(v, 4) for
             inj=inj_rows, injSource=snap['source'])
 html = open(os.path.join(HERE, 'template.html')).read().replace('__DATA__', json.dumps(data, separators=(',', ':'), default=float))
 open(f'{OUT}/dashboard.html', 'w').write(html)
-open(f'{OUT}/dashboard_script.js', 'w').write(html.split('<script>')[1].split('</script>')[0])
 print(len(players), 'players;', len(html) // 1024, 'KB')
