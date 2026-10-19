@@ -3,6 +3,7 @@ Usage: python3 build_html.py <out_dir>   (reads players_2026.csv, model_meta.jso
 import sys, os, json, re, numpy as np, pandas as pd
 
 OUT = sys.argv[1]
+DATA = sys.argv[2] if len(sys.argv) > 2 else 'data'
 HERE = os.path.dirname(os.path.abspath(__file__))
 # Display cutoff for the injury list and badges (looser than the starter thresholds used in the transfer analysis,
 # so partial-game players such as a banged-up RB1 still show up).
@@ -31,7 +32,7 @@ for _, r in cur.iterrows():
         rzt=nn(r.rz_tgt_share), glc=nn(r.gl_car_share), inj=None, injd=None, tm=[]))
 
 # ---- injury snapshot (authoritative for current statuses; players not listed are treated as healthy) ----
-snap = json.load(open(os.path.join(HERE, '..', 'reference', 'nfl_injuries_week6.json')))
+snap = json.load(open(os.path.join(HERE, '..', 'reference', 'nfl_injuries_latest.json')))
 idx = {(norm(p['name']), p['team']): p for p in players}
 unmatched = []
 for e in snap['players']:
@@ -63,11 +64,23 @@ inj_rows.sort(key=lambda x: (order[x['status']], -x['xfp']))
 print('injury entries matched:', len(snap['players']) - len(unmatched), 'of', len(snap['players']), '| unmatched:', unmatched)
 print('stars on report:', len(inj_rows), '| players with a teammate-out badge:', sum(1 for p in players if p['tm']))
 
+# ---- current week from the schedule: last fully played week W; projections start the week after W,
+# or the one after that when the following week is already mostly played ----
+gm = pd.read_csv(f'{DATA}/games.csv', usecols=['season', 'week', 'game_type', 'away_score'])
+gm = gm[(gm.season == 2026) & (gm.game_type == 'REG')]
+full = sorted(w for w, x in gm.groupby('week') if x.away_score.notna().all())
+W = max(full)
+nxt = gm[gm.week == W + 1]
+k_played = int(nxt.away_score.notna().sum())
+next_week = W + 2 if len(nxt) and k_played / len(nxt) >= 0.5 else W + 1
+as_of = f'Week {W}' + (f' plus {k_played} Week {W + 1} game{"s" if k_played != 1 else ""}' if k_played else '')
+print('as of:', as_of, '| projections start week', next_week)
+
 rm = S['rmse_table']; k = list(rm.keys())[0]
 data = dict(players=players, sched=meta['schedule'], dvp={p: {t: round(v, 4) for t, v in d.items()} for p, d in meta['dvp'].items()},
             repl={p: round(v, 3) for p, v in S['repl'].items()}, sd={p: round(v, 3) for p, v in S['sd'].items()},
             summary=dict(rmse=dict(naive=rm[k]['naive'], xfp=rm[k]['xfp'], model=rm[k]['model']), coefs=S['coefs'], lam=S['lam']),
-            nextWeek=6, asOf='Week 5 plus the Week 6 Thursday game (SEA at DEN)',
+            nextWeek=next_week, asOf=as_of,
             inj=inj_rows, injSource=snap['source'])
 html = open(os.path.join(HERE, 'template.html')).read().replace('__DATA__', json.dumps(data, separators=(',', ':'), default=float))
 open(f'{OUT}/dashboard.html', 'w').write(html)

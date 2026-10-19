@@ -2,7 +2,7 @@
 
 A quantitative model for a 12-team PPR fantasy football league (1 QB, 2 RB, 2 WR, 1 TE, 1 FLEX). It uses opportunity data (targets, air yards, carries, snap share, red-zone usage) to estimate how many points a player *should* have scored, flags who is over- or under-performing, projects the rest of the season, and evaluates trades against your actual roster.
 
-**Dashboard:** open [`docs/index.html`](docs/index.html) in a browser. It is a self-contained page with four tabs: Over / Under (sortable player table and scatter plot), Trade evaluator, Injuries, and Method. The snapshot covers the 2026 season through Week 5 plus the Week 6 Thursday game.
+**Dashboard:** open [`docs/index.html`](docs/index.html) in a browser (refreshed weekly; the header shows the as-of week). It is a self-contained page with four tabs: Over / Under (sortable player table and scatter plot), Trade evaluator, Injuries, and Method. 
 
 ## What it answers
 
@@ -31,6 +31,10 @@ Predicting rest-of-season PPG for players with at least 3 games, trained on one 
 
 Errors are still large (about 3-5 PPG per player depending on position), so treat flags as prompts to check a player's usage, not as verdicts.
 
+## Weekly refresh
+
+`./run_all.sh --refresh` downloads the latest data, checks that the newest NFL week is complete in every dataset, rebuilds the model, runs sanity checks, and writes `docs/index.html`. A scheduled Claude task runs this every Tuesday at 7:00 AM ET (with a Wednesday retry) following [`WEEKLY_UPDATE.md`](WEEKLY_UPDATE.md): it also refreshes the injury report from NFL.com, republishes the dashboard link and pushes here. Tuesday morning is deliberate, since Monday Night Football finishes around midnight ET. The season constant (2026) is set in `src/check_ready.py`, `src/build_html.py` and `fetch_data.sh`.
+
 ## Teammate injuries: tested, not applied
 
 When a starter is out, do his teammates' projections need adjusting? I measured it and backtested it. Short answer: teammates do absorb part of the lost usage, but adjusting the projection for it did not improve accuracy, so the model ignores it.
@@ -48,7 +52,7 @@ When a starter is out, do his teammates' projections need adjusting? I measured 
 
 - **One week ahead** (1,557 teammate-weeks): the pooled-rate boost predicted +0.95 xFP against +0.54 observed, and improved predictions only for RB teammates (RMSE 5.25 to 5.20).
 - **What shipped.** The Injuries tab lists injured starters from the NFL.com report with a "back in" note you can set per player (saved in your browser), and the player table shows a "Teammate out" badge. Both are context only and change no projection or trade value.
-- **Injury data.** `reference/nfl_injuries_week6.json` is a snapshot of the NFL.com Week 6 report (skill positions only). It has game-day status but no return timelines, and it is refreshed by hand, not by script.
+- **Injury data.** `reference/nfl_injuries_latest.json` is a snapshot of the NFL.com report (skill positions only), refreshed by the weekly Claude task. It has game-day status but no return timelines.
 
 Reproduce with `python3 analysis/transfer_backtest.py data output` and `python3 analysis/weekly_check.py data output` (run `./run_all.sh` first so `output/playerweek.csv` exists).
 
@@ -70,7 +74,9 @@ pip install -r requirements.txt
 | `src/build_html.py`, `src/template.html` | Injects model output and the injury snapshot into the dashboard page |
 | `src/opportunity.py` | Absent-starter detection, pooled transfer rates, stripped baselines (used by the injury analysis) |
 | `analysis/` | Schedule-persistence diagnostic, spot-check against raw stats, and the injury-transfer backtests |
-| `reference/` | Hand-pulled NFL.com injury report snapshot |
+| `reference/` | Latest NFL.com injury report snapshot (refreshed weekly) |
+| `src/check_ready.py`, `src/sanity.py` | Week-complete check and output sanity checks used by `run_all.sh` |
+| `WEEKLY_UPDATE.md` | Runbook for the weekly scheduled update |
 | `output/` | Latest model output (`players_2026.csv`, `model_meta.json`) |
 | `docs/index.html` | The dashboard |
 | `fetch_data.sh` | Downloads the raw nflverse data |
