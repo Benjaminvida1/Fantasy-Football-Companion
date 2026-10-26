@@ -84,4 +84,11 @@ data = dict(players=players, sched=meta['schedule'], dvp={p: {t: round(v, 4) for
             inj=inj_rows, injSource=snap['source'])
 html = open(os.path.join(HERE, 'template.html')).read().replace('__DATA__', json.dumps(data, separators=(',', ':'), default=float))
 open(f'{OUT}/dashboard.html', 'w').write(html)
+
+# Standalone page for GitHub Pages: the claude.ai artifact viewer adds its own document wrapper, so output/dashboard.html
+# stays a fragment; the repo copy needs a doctype, charset and viewport tag or it renders in quirks mode and breaks on phones.
+sys.path.insert(0, HERE)
+from standalone import wrap
+os.makedirs(os.path.join(HERE, '..', 'docs'), exist_ok=True)
+open(os.path.join(HERE, '..', 'docs', 'index.html'), 'w').write(wrap(html))
 print(len(players), 'players;', len(html) // 1024, 'KB')

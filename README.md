@@ -2,7 +2,7 @@
 
 A quantitative model for a 12-team PPR fantasy football league (1 QB, 2 RB, 2 WR, 1 TE, 1 FLEX). It uses opportunity data (targets, air yards, carries, snap share, red-zone usage) to estimate how many points a player *should* have scored, flags who is over- or under-performing, projects the rest of the season, and evaluates trades against your actual roster.
 
-**Dashboard:** open [`docs/index.html`](docs/index.html) in a browser (refreshed weekly; the header shows the as-of week). It is a self-contained page with four tabs: Over / Under (sortable player table and scatter plot), Trade evaluator, Injuries, and Method. 
+**Dashboard:** https://benjaminvida1.github.io/Fantasy-Football-Companion/ (GitHub Pages; refreshed weekly, the header shows the as-of week). You can also open [`docs/index.html`](docs/index.html) locally in a browser. It is a self-contained page with four tabs: Over / Under (sortable player table and scatter plot), Trade evaluator, Injuries, and Method. 
 
 ## What it answers
 
@@ -33,7 +33,7 @@ Errors are still large (about 3-5 PPG per player depending on position), so trea
 
 ## Weekly refresh
 
-`./run_all.sh --refresh` downloads the latest data, checks that the newest NFL week is complete in every dataset, rebuilds the model, runs sanity checks, and writes `docs/index.html`. A scheduled Claude task runs this every Tuesday at 7:00 AM ET (with a Wednesday retry) following [`WEEKLY_UPDATE.md`](WEEKLY_UPDATE.md): it also refreshes the injury report from NFL.com, republishes the dashboard link and pushes here. Tuesday morning is deliberate, since Monday Night Football finishes around midnight ET. The season constant (2026) is set in `src/check_ready.py`, `src/build_html.py` and `fetch_data.sh`.
+`./run_all.sh --refresh` downloads the latest data, checks that the newest NFL week is complete in every dataset, rebuilds the model, runs sanity checks, and writes `output/dashboard.html` (page fragment for the Claude artifact) and `docs/index.html` (standalone page for GitHub Pages). A scheduled Claude task runs this every Tuesday at 7:00 AM ET (with a Wednesday retry) following [`WEEKLY_UPDATE.md`](WEEKLY_UPDATE.md): it also refreshes the injury report from NFL.com, republishes the dashboard link and pushes here. Tuesday morning is deliberate, since Monday Night Football finishes around midnight ET. The season constant (2026) is set in `src/check_ready.py`, `src/build_html.py` and `fetch_data.sh`.
 
 ## Teammate injuries: tested, not applied
 
@@ -78,7 +78,7 @@ pip install -r requirements.txt
 | `src/check_ready.py`, `src/sanity.py` | Week-complete check and output sanity checks used by `run_all.sh` |
 | `WEEKLY_UPDATE.md` | Runbook for the weekly scheduled update |
 | `output/` | Latest model output (`players_2026.csv`, `model_meta.json`) |
-| `docs/index.html` | The dashboard |
+| `docs/index.html` | The dashboard as a standalone page (served by GitHub Pages; the root `index.html` redirects here) |
 | `fetch_data.sh` | Downloads the raw nflverse data |
 
 ## Limits

@@ -18,6 +18,5 @@ python3 src/build_xfp.py data output
 SOS_COL=ppr LAMS=20 python3 src/model.py data output
 python3 src/build_html.py output data
 python3 src/sanity.py output
-cp output/dashboard.html docs/index.html
 python3 src/check_ready.py data output --record
 echo "Done. Open docs/index.html in a browser."
