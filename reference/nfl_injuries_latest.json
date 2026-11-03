@@ -1,28 +1,14 @@
 {
- "week": 7,
- "fetched": "2026-10-27",
- "source": "Fallback: nflverse injuries_2026.csv, Week 7 final game-status report (NFL.com could not be read in this automated run). Offensive skill positions only. Week 8 report not yet published, so these statuses are from games already played and may be outdated.",
+ "week": 8,
+ "fetched": "2026-11-03",
+ "source": "Fallback: nflverse injuries_2026.csv, Week 8 final game-status report (NFL.com could not be read in this automated run). Offensive skill positions only. Week 9 report not yet published, so these statuses are from games already played and may be outdated.",
  "players": [
   {
-   "name": "Jeremiyah Love",
-   "pos": "RB",
-   "team": "ARI",
-   "injury": "Ankle",
-   "status": "Out"
-  },
-  {
-   "name": "Carson Beck",
-   "pos": "QB",
-   "team": "ARI",
-   "injury": "Back",
-   "status": "Questionable"
-  },
-  {
-   "name": "Beaux Collins",
+   "name": "Olamide Zaccheaus",
    "pos": "WR",
    "team": "ATL",
-   "injury": "Hip",
-   "status": "Out"
+   "injury": "Shoulder",
+   "status": "Questionable"
   },
   {
    "name": "Brian Robinson",
@@ -32,18 +18,39 @@
    "status": "Out"
   },
   {
-   "name": "Olamide Zaccheaus",
+   "name": "Beaux Collins",
    "pos": "WR",
    "team": "ATL",
+   "injury": "Hip",
+   "status": "Questionable"
+  },
+  {
+   "name": "Adam Randall",
+   "pos": "RB",
+   "team": "BAL",
+   "injury": "Neck",
+   "status": "Questionable"
+  },
+  {
+   "name": "DJ Moore",
+   "pos": "WR",
+   "team": "BUF",
    "injury": "Shoulder",
    "status": "Questionable"
   },
   {
-   "name": "Lamar Jackson",
-   "pos": "QB",
-   "team": "BAL",
-   "injury": "Ankle",
+   "name": "Tyrell Shavers",
+   "pos": "WR",
+   "team": "BUF",
+   "injury": "Knee",
    "status": "Out"
+  },
+  {
+   "name": "Dalton Kincaid",
+   "pos": "TE",
+   "team": "BUF",
+   "injury": "Chest",
+   "status": "Questionable"
   },
   {
    "name": "Kyle Monangai",
@@ -53,11 +60,11 @@
    "status": "Out"
   },
   {
-   "name": "Dillon Gabriel",
-   "pos": "QB",
-   "team": "CLE",
-   "injury": "Back",
-   "status": "Out"
+   "name": "George Pickens",
+   "pos": "WR",
+   "team": "DAL",
+   "injury": "Shoulder",
+   "status": "Questionable"
   },
   {
    "name": "KaVontae Turpin",
@@ -67,37 +74,37 @@
    "status": "Out"
   },
   {
-   "name": "Tyler Badie",
-   "pos": "RB",
-   "team": "DEN",
-   "injury": "Thumb",
-   "status": "Out"
-  },
-  {
-   "name": "Jonah Coleman",
-   "pos": "RB",
-   "team": "DEN",
-   "injury": "Ankle",
+   "name": "Luke Schoonmaker",
+   "pos": "TE",
+   "team": "DAL",
+   "injury": "Groin",
    "status": "Questionable"
   },
   {
-   "name": "Bo Melton",
+   "name": "Jaylen Waddle",
+   "pos": "WR",
+   "team": "DEN",
+   "injury": "Chest",
+   "status": "Questionable"
+  },
+  {
+   "name": "RJ Harvey",
+   "pos": "RB",
+   "team": "DEN",
+   "injury": "Knee",
+   "status": "Out"
+  },
+  {
+   "name": "Matthew Golden",
    "pos": "WR",
    "team": "GB",
-   "injury": "Back",
+   "injury": "Shoulder",
    "status": "Questionable"
   },
   {
-   "name": "David Montgomery",
-   "pos": "RB",
-   "team": "HOU",
-   "injury": "Groin",
-   "status": "Out"
-  },
-  {
-   "name": "Tank Dell",
-   "pos": "WR",
-   "team": "HOU",
+   "name": "Andrew Ogletree",
+   "pos": "TE",
+   "team": "IND",
    "injury": "Knee",
    "status": "Questionable"
   },
@@ -109,32 +116,32 @@
    "status": "Out"
   },
   {
-   "name": "Tyler Warren",
-   "pos": "TE",
-   "team": "IND",
-   "injury": "Groin",
-   "status": "Out"
-  },
-  {
-   "name": "Brashard Smith",
-   "pos": "RB",
-   "team": "KC",
-   "injury": "Hamstring",
-   "status": "Out"
-  },
-  {
-   "name": "Rashee Rice",
+   "name": "Jakobi Meyers",
    "pos": "WR",
-   "team": "KC",
+   "team": "JAX",
    "injury": "Hamstring",
-   "status": "Out"
+   "status": "Questionable"
   },
   {
-   "name": "Puka Nacua",
+   "name": "Colby Parkinson",
+   "pos": "TE",
+   "team": "LA",
+   "injury": "Rib",
+   "status": "Questionable"
+  },
+  {
+   "name": "Jordan Whittington",
    "pos": "WR",
    "team": "LA",
-   "injury": "Calf",
+   "injury": "Back",
    "status": "Questionable"
+  },
+  {
+   "name": "Brenen Thompson",
+   "pos": "WR",
+   "team": "LAC",
+   "injury": "Quadricep",
+   "status": "Out"
   },
   {
    "name": "Carter Runyon",
@@ -144,45 +151,31 @@
    "status": "Out"
   },
   {
-   "name": "Dont'e Thornton Jr.",
+   "name": "Jack Bech",
    "pos": "WR",
    "team": "LV",
-   "injury": "Hamstring",
-   "status": "Out"
-  },
-  {
-   "name": "Mike Washington Jr.",
-   "pos": "RB",
-   "team": "LV",
-   "injury": "Foot",
+   "injury": "Forearm",
    "status": "Questionable"
   },
   {
-   "name": "Jordan Mason",
-   "pos": "RB",
-   "team": "MIN",
-   "injury": "Thumb",
+   "name": "A.J. Brown",
+   "pos": "WR",
+   "team": "NE",
+   "injury": "Ankle",
    "status": "Questionable"
   },
   {
-   "name": "Theo Johnson",
-   "pos": "TE",
-   "team": "NYG",
-   "injury": "Neck",
-   "status": "Doubtful"
+   "name": "TreVeyon Henderson",
+   "pos": "RB",
+   "team": "NE",
+   "injury": "Illness",
+   "status": "Questionable"
   },
   {
    "name": "Breece Hall",
    "pos": "RB",
    "team": "NYJ",
    "injury": "Quadricep",
-   "status": "Questionable"
-  },
-  {
-   "name": "Kene Nwangwu",
-   "pos": "RB",
-   "team": "NYJ",
-   "injury": "Knee",
    "status": "Questionable"
   },
   {
@@ -193,6 +186,13 @@
    "status": "Out"
   },
   {
+   "name": "Britain Covey",
+   "pos": "WR",
+   "team": "PHI",
+   "injury": "Knee",
+   "status": "Out"
+  },
+  {
    "name": "Dontayvion Wicks",
    "pos": "WR",
    "team": "PHI",
@@ -200,46 +200,11 @@
    "status": "Out"
   },
   {
-   "name": "Eli Stowers",
-   "pos": "TE",
-   "team": "PHI",
-   "injury": "Quadricep",
-   "status": "Questionable"
-  },
-  {
-   "name": "Grant Calcaterra",
-   "pos": "TE",
-   "team": "PHI",
-   "injury": "Back",
-   "status": "Questionable"
-  },
-  {
-   "name": "Saquon Barkley",
-   "pos": "RB",
-   "team": "PHI",
-   "injury": "Hamstring",
-   "status": "Questionable"
-  },
-  {
    "name": "Ben Skowronek",
    "pos": "WR",
    "team": "PIT",
    "injury": "Calf",
-   "status": "Out"
-  },
-  {
-   "name": "Rico Dowdle",
-   "pos": "RB",
-   "team": "PIT",
-   "injury": "Knee",
    "status": "Questionable"
-  },
-  {
-   "name": "Zach Charbonnet",
-   "pos": "RB",
-   "team": "SEA",
-   "injury": "Knee",
-   "status": "Out"
   },
   {
    "name": "Drew Lock",
@@ -249,39 +214,32 @@
    "status": "Questionable"
   },
   {
-   "name": "Deebo Samuel Sr.",
+   "name": "Rashid Shaheed",
    "pos": "WR",
-   "team": "SF",
+   "team": "SEA",
+   "injury": "Knee",
+   "status": "Out"
+  },
+  {
+   "name": "Velus Jones Jr.",
+   "pos": "RB",
+   "team": "SEA",
    "injury": "Hamstring",
    "status": "Out"
   },
   {
-   "name": "Mike Evans",
-   "pos": "WR",
-   "team": "SF",
-   "injury": "Ribs",
-   "status": "Out"
-  },
-  {
-   "name": "Christian Kirk",
-   "pos": "WR",
-   "team": "SF",
-   "injury": "Calf",
+   "name": "Kenny Gainwell",
+   "pos": "RB",
+   "team": "TB",
+   "injury": "Hip",
    "status": "Questionable"
   },
   {
    "name": "Emeka Egbuka",
    "pos": "WR",
    "team": "TB",
-   "injury": "Concussion",
+   "injury": "Foot",
    "status": "Out"
-  },
-  {
-   "name": "Baker Mayfield",
-   "pos": "QB",
-   "team": "TB",
-   "injury": "Thumb",
-   "status": "Questionable"
   },
   {
    "name": "Calvin Ridley",
@@ -294,7 +252,28 @@
    "name": "Tyjae Spears",
    "pos": "RB",
    "team": "TEN",
-   "injury": "Not injury related - resting player",
+   "injury": "Knee",
+   "status": "Out"
+  },
+  {
+   "name": "Carnell Tate",
+   "pos": "WR",
+   "team": "TEN",
+   "injury": "Shoulder",
+   "status": "Out"
+  },
+  {
+   "name": "John Bates",
+   "pos": "TE",
+   "team": "WAS",
+   "injury": "Shoulder",
+   "status": "Questionable"
+  },
+  {
+   "name": "Treylon Burks",
+   "pos": "WR",
+   "team": "WAS",
+   "injury": "Foot",
    "status": "Questionable"
   }
  ]
